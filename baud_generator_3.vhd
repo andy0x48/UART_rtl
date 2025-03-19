@@ -22,15 +22,17 @@ begin
 
 	process(clk)
 	begin
-		if rst = '1' then
-			toggle <= '0'; 
-			cnt_out <= (others => '0');
-		elsif rising_edge(clk) then
-			if cnt_out = "0011" then
+		if rising_edge(clk) then
+			if rst = '1' then
+				toggle <= '0'; 
 				cnt_out <= (others => '0');
-				toggle <= not toggle;
-			else 
-				cnt_out <= cnt_out + 1;
+			else
+				if cnt_out = "0011" then
+					cnt_out <= (others => '0');
+					toggle <= not toggle;
+				else 
+					cnt_out <= cnt_out + 1;
+				end if;
 			end if;
 		end if;
 	end process;

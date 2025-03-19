@@ -65,7 +65,7 @@ begin
 		
 		-- Release Reset
 		rst_tb <= '0';
-		wait for 1 us;
+		wait for 927 ns;
 		
 		-- Apply Long Reset
 		rst_tb <= '1';

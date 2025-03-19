@@ -33,12 +33,14 @@ begin
 
 	process(clk)
 	begin
-		if rst = '1' then
+		if rising_edge(clk) then
+			if rst = '1' then
 				toggle <= '0'; 
-		elsif rising_edge(clk) then
-			if cnt_out = "0011" then
-				toggle <= not toggle;
+			else 
+				if cnt_out = "0011" then
+					toggle <= not toggle;
 				end if;
+			end if;
 		end if;
 	end process;
 	
