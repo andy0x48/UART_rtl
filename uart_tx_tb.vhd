@@ -14,7 +14,7 @@ architecture tb of uart_tx_tb is
 		port(
 			clk			: in std_logic;
 			rst			: in std_logic;
-			baud_clk		: in std_logic;
+			baud_tick	: in std_logic;
 			data_in		: in std_logic_vector(7 downto 0);
 			data_ready	: in std_logic;
 			tx				: out std_logic;
@@ -26,13 +26,13 @@ architecture tb of uart_tx_tb is
 		port(
 			clk       : in std_logic;
 			rst       : in std_logic;
-			baud_rate : out std_logic
+			baud_tick : out std_logic
 		);
 	end component;
 	
 	signal clk_tb			: std_logic := '0';
 	signal rst_tb			: std_logic := '0';
-	signal baud_clk_tb	: std_logic := '0';
+	signal baud_tick_tb	: std_logic := '0';
 	signal data_in_tb		: std_logic_vector(7 downto 0) := (others => '0');
 	signal data_ready_tb	: std_logic := '0';
 	signal tx_tb			: std_logic := '0';
@@ -46,7 +46,7 @@ begin
 		port map(
 			clk			=> clk_tb,
 			rst			=> rst_tb,
-			baud_clk		=> baud_clk_tb,
+			baud_tick	=> baud_tick_tb,
 			data_in		=> data_in_tb,
 			data_ready	=> data_ready_tb,
 			tx				=> tx_tb,
@@ -57,7 +57,7 @@ begin
 		port map(
 			clk       => clk_tb,
 			rst       => rst_tb,
-			baud_rate => baud_clk_tb
+			baud_tick => baud_tick_tb
 		);
 
 	clk_process: process
@@ -70,39 +70,36 @@ begin
 	
 	stim_process: process
 	begin
-		-- Apply Reset
+		-- Apply sReset
 		rst_tb <= '1';
 		wait for 100 ns; 
-
-		-- Release Reset
 		rst_tb <= '0';
-		data_ready_tb <= '0';
+		wait for 500 ns;
+		
+		wait until rising_edge(clk_tb);
+		
+		-- Data Ready
+		data_ready_tb <= '1';
 		data_in_tb <= "11001011";
 		wait for 1 us;
 		
-		-- Apply Reset
+		wait until rising_edge(clk_tb);
+		
+		-- Apply sReset
 		rst_tb <= '1';
 		wait for 100 ns;
-		
-		-- Release Reset
-		rst_tb <= '0';
-		wait for 1 us;
-		
-		-- Apply Reset
-		rst_tb <= '1';
-		wait for 100 ns;
-		
-		-- Release Reset
 		rst_tb <= '0';
 		wait for 927 ns;
 		
-		-- Apply Long Reset
+		-- Apply Long aReset
 		rst_tb <= '1';
 		wait for 334 ns;
 		
 		-- Release Reset
 		rst_tb <= '0';
 		wait for 1 us;
+		
+		wait until rising_edge(clk_tb);
 
 		report "Simulation Complete" severity note;
 		wait;

@@ -10,7 +10,7 @@ end baud_generator_tb;
 	
 architecture tb of baud_generator_tb is
 
-	component baud_generator
+	component baud_generator_3
 		port(
 			clk			: in std_logic;
 			rst			: in std_logic;
@@ -26,7 +26,7 @@ architecture tb of baud_generator_tb is
 
 begin
 
-	uut: baud_generator
+	uut: baud_generator_3
 		port map(
 			clk			=> clk_tb,
 			rst			=> rst_tb,
