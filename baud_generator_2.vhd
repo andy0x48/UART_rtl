@@ -9,15 +9,14 @@ entity baud_generator_2 is
 	port(
 		clk			: in std_logic;
 		rst			: in std_logic;
-		baud_rate	: out std_logic
+		baud_tick	: out std_logic
 		);
 end baud_generator_2;
 	
 architecture rtl of baud_generator_2 is
 
-	signal cnt_out 	: std_logic_vector(3 downto 0);
-	signal toggle_in 	: std_logic_vector(0 downto 0);
-	signal toggle_out : std_logic_vector(0 downto 0);
+	signal cnt_out	: std_logic_vector(3 downto 0);
+	signal tick 	: std_logic_vector(0 downto 0);
 
 begin
 
@@ -32,20 +31,18 @@ begin
 			q => cnt_out
 			);
 			
-	toggle_c : LPM_FF
-		generic map (
-			LPM_WIDTH => 1,
-			LPM_FFTYPE => "TFF"
-			)
-		port map (
-			clock => clk,
-			data => toggle_in,
-			aclr => rst,
-			q => toggle_out
-			);
-			
-	toggle_in(0) <= not cnt_out(0) and not cnt_out(1) and not cnt_out(2) and not cnt_out(3);
+	process(clk)
+	begin
+		if rising_edge(clk) then
+			if rst = '1' then
+				tick(0) <= '0';
+			else
+				tick(0) <= not cnt_out(0) and not cnt_out(1) and not cnt_out(2) and not cnt_out(3);
+			end if;
+		end if;
+	end process;
 	
-	baud_rate <= toggle_out(0);
+	
+	baud_tick <= tick(0);
 	
 end rtl;

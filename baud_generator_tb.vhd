@@ -10,27 +10,27 @@ end baud_generator_tb;
 	
 architecture tb of baud_generator_tb is
 
-	component baud_generator_3
+	component baud_generator
 		port(
 			clk			: in std_logic;
 			rst			: in std_logic;
-			baud_rate	: out std_logic
+			baud_tick	: out std_logic
 			);
 	end component;
 	
 	signal clk_tb			: std_logic := '0';
 	signal rst_tb			: std_logic := '0';
-	signal baud_rate_tb	: std_logic := '0';
+	signal baud_tick_tb	: std_logic := '0';
 	
 	constant CLK_PERIOD : time := 20 ns;
 
 begin
 
-	uut: baud_generator_3
+	uut: baud_generator
 		port map(
 			clk			=> clk_tb,
 			rst			=> rst_tb,
-			baud_rate	=> baud_rate_tb
+			baud_tick	=> baud_tick_tb
 			);
 
 	clk_process: process
