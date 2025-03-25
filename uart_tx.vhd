@@ -6,105 +6,110 @@ library LPM;
 use LPM.LPM_COMPONENTS.ALL;
 
 entity uart_tx is
+	generic(
+		DBIT	: integer := 8	-- # of data bits
+	);
 	port(
-		clk			: in std_logic;
-		rst			: in std_logic;
+		clk, rst		: in std_logic;
 		baud_tick	: in std_logic;
+		data_ready 	: in std_logic;
 		data_in		: in std_logic_vector(7 downto 0);
-		data_ready	: in std_logic;
-		tx				: out std_logic;
-		tx_ready		: out std_logic
-		);
-end uart_tx;
-	
+		tx_ready		: out std_logic;
+		tx				: out std_logic
+	);
+end uart_tx ;
+
 architecture rtl of uart_tx is
 
 	type uart_tx_states is (IDLE, START, DATA, STOP);
-	signal next_state : uart_tx_states;
+	signal state_reg, state_next : uart_tx_states;
 	
-	signal counter			: std_logic_vector(3 downto 0);
-	signal counter_en		: std_logic;
-	signal shift_en		: std_logic;
-	signal shift_load		: std_logic;
-	signal tx_buffer_in	: std_logic_vector(9 downto 0);
-	signal tx_serial 		: std_logic;
-
+	signal s_reg, s_next 	: unsigned(3 downto 0);
+	signal n_reg, n_next 	: unsigned(2 downto 0);
+	signal b_reg, b_next 	: std_logic_vector(7 downto 0);
+	signal tx_reg, tx_next 	: std_logic;
+	
 begin
 
-	counter_c : LPM_COUNTER
-		generic map (
-			LPM_WIDTH => 4,
-			LPM_MODULUS => 10
-			)
-		port map (
-			clock => baud_tick,
-			aclr => rst,
-			cnt_en => counter_en,
-			q => counter
-			);
-			
-	tx_piso_c : LPM_SHIFTREG
-		generic map (
-			LPM_WIDTH => 10,
-			LPM_DIRECTION => "RIGHT"
-			)
-		port map (
-			clock => clk,
-			aclr => rst,
-			enable => baud_tick,
-			load => shift_load,
-			data => tx_buffer_in,
-			shiftout => tx_serial
-			);
-			
-	process(clk, baud_tick)
+	-- FSM state and data registers
+	process(clk, rst)
 	begin
-		if rising_edge(clk) then
-			if rst = '1' then
-				counter_en <= '0';
-				shift_load <= '1';
-				tx_buffer_in <= (others => '1');
-				tx_ready <= '0';
-				next_state <= IDLE;
-			else
-				case next_state is
-					-- IDLE
-					when IDLE =>
-						if data_ready = '1' then
-							if baud_tick = '1' then
-								counter_en <= '1';
-								tx_buffer_in(8 downto 1) <= data_in;
-								next_state <= START;
-							end if;
-						else
-							next_state <= IDLE;
-						end if;
-					-- START
-					when START =>
-						if baud_tick = '1' then
-							tx_buffer_in(0) <= '0';
-							shift_load <= '0';
-							next_state <= DATA;
-						end if;
-					-- DATA
-					when DATA =>
-						if baud_tick = '1' then
-							if counter = "1001" then
-								shift_load <= '1';
-								next_state <= STOP;
-							end if;
-						end if;
-					-- STOP
-					when STOP =>
-						if baud_tick = '1' then
-							tx_buffer_in(9) <= '1';
-							next_state <= IDLE;
-						end if;
-				end case;
-			end if;
-		end if;
+		if rst = '1' then
+			state_reg <= IDLE;
+			s_reg <= (others => '0');
+			n_reg <= (others => '0');
+			b_reg <= (others => '0');
+			tx_reg <= '1';
+		elsif rising_edge(clk) then
+			state_reg <= state_next;
+			s_reg <= s_next;
+			n_reg <= n_next;
+			b_reg <= b_next;
+			tx_reg <= tx_next;
+		end if ;
 	end process;
 	
-	tx <= '1' when rst = '1' else tx_serial;
+	-- next_state logic & data path functional units/routing
+	process(state_reg, s_reg, n_reg, b_reg, baud_tick, tx_reg, data_ready, data_in)
+	begin
+		state_next <= state_reg;
+		s_next <= s_reg;
+		n_next <= n_reg;
+		b_next <= b_reg;
+		tx_next <= tx_reg; 
+		tx_ready <= '0';
+		
+		case state_reg is
+			-- IDLE
+			when IDLE =>
+				tx_next <= '1' ;
+				if data_ready = '1' then
+					state_next <= START;
+					s_next <= (others => '0');
+					b_next <= data_in;
+				end if;
+			-- START
+			when START =>
+				tx_next <= '0';
+				if (baud_tick = '1') then
+					if s_reg = 15 then
+						state_next <= DATA;
+						s_next <= (others => '0');
+						n_next <= (others => '0');
+					else
+						s_next <= s_reg + 1;
+					end if;
+				end if;
+			-- DATA
+			when DATA =>
+				tx_next <= b_reg(0);
+				if (baud_tick = '1') then
+					if s_reg = 15 then
+						s_next <= (others => '0');
+						b_next <= '0' & b_reg(7 downto 1); --concat
+						if n_reg = (DBIT - 1) then
+							state_next <= STOP;
+						else
+							n_next <= n_reg + 1;
+						end if;
+					else
+						s_next <= s_reg + 1;
+					end if;
+				end if;
+			-- STOP
+			when STOP =>
+				tx_next <= '1';
+				if (baud_tick = '1') then
+					if s_reg = 15 then
+						state_next <= IDLE;
+						tx_ready <= '1';
+					else
+						s_next <= s_reg + 1;
+					end if;
+				end if;
+		end case;
+	end process;
 	
-end rtl;
+	tx <= tx_reg;
+	
+end rtl; 

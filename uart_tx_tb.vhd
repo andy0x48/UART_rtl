@@ -2,107 +2,107 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_ARITH.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
-library LPM;
-use LPM.LPM_COMPONENTS.ALL;
 
 entity uart_tx_tb is
 end uart_tx_tb;
-	
+
 architecture tb of uart_tx_tb is
 
-	component uart_tx
-		port(
-			clk			: in std_logic;
-			rst			: in std_logic;
-			baud_tick	: in std_logic;
-			data_in		: in std_logic_vector(7 downto 0);
-			data_ready	: in std_logic;
-			tx				: out std_logic;
-			tx_ready		: out std_logic
-			);
-	end component;
-	
-	component baud_generator
+    component draft_uart_tx
+        generic(
+            DBIT	: integer := 8
+        );
+        port(
+            clk         : in std_logic;
+            rst        	: in std_logic;
+            data_ready 	: in std_logic;
+            baud_tick   : in std_logic;
+            data_in     : in std_logic_vector(7 downto 0);
+            tx_ready 	: out std_logic;
+            tx          : out std_logic
+        );
+    end component;
+	 
+	 component baud_generator
 		port(
 			clk       : in std_logic;
 			rst       : in std_logic;
 			baud_tick : out std_logic
 		);
-	end component;
-	
-	signal clk_tb			: std_logic := '0';
-	signal rst_tb			: std_logic := '0';
-	signal baud_tick_tb	: std_logic := '0';
-	signal data_in_tb		: std_logic_vector(7 downto 0) := (others => '0');
-	signal data_ready_tb	: std_logic := '0';
-	signal tx_tb			: std_logic := '0';
-	signal tx_ready_tb	: std_logic := '0';
-	
-	constant CLK_PERIOD : time := 20 ns;
+	 end component;
+
+    signal clk          : std_logic := '0';
+    signal rst        	: std_logic := '1';
+    signal data_ready	: std_logic := '0';
+    signal baud_tick    : std_logic := '0';
+    signal data_in     	: std_logic_vector(7 downto 0) := (others=> '0');
+    signal tx_ready 		: std_logic;
+    signal tx           : std_logic;
+
+    constant CLK_PERIOD	: time := 20 ns;
 
 begin
 
-	uut: uart_tx
+	 uut: draft_uart_tx
+        generic map(
+            DBIT    => 8
+        )
+        port map(
+            clk         => clk,
+            rst       	=> rst,
+            data_ready  => data_ready,
+            baud_tick   => baud_tick,
+            data_in     => data_in,
+            tx_ready 	=> tx_ready,
+            tx          => tx
+        );
+		  
+	 baud_gen_inst: baud_generator
 		port map(
-			clk			=> clk_tb,
-			rst			=> rst_tb,
-			baud_tick	=> baud_tick_tb,
-			data_in		=> data_in_tb,
-			data_ready	=> data_ready_tb,
-			tx				=> tx_tb,
-			tx_ready		=> tx_ready_tb
-			);
-			
-	baud_gen_inst: baud_generator
-		port map(
-			clk       => clk_tb,
-			rst       => rst_tb,
-			baud_tick => baud_tick_tb
+			clk       => clk,
+			rst       => rst,
+			baud_tick => baud_tick
 		);
 
-	clk_process: process
-	begin
-		clk_tb <= '0';
+    clk_process: process
+	 begin
+		clk <= '0';
 		wait for CLK_PERIOD / 2;
-		clk_tb <= '1';
+		clk <= '1';
 		wait for CLK_PERIOD / 2;
-	end process;
-	
-	stim_process: process
-	begin
-		-- Apply sReset
-		rst_tb <= '1';
-		wait for 100 ns; 
-		rst_tb <= '0';
-		wait for 500 ns;
-		
-		wait until rising_edge(clk_tb);
-		
-		-- Data Ready
-		data_ready_tb <= '1';
-		data_in_tb <= "11001011";
-		wait for 1 us;
-		
-		wait until rising_edge(clk_tb);
-		
-		-- Apply sReset
-		rst_tb <= '1';
-		wait for 100 ns;
-		rst_tb <= '0';
-		wait for 927 ns;
-		
-		-- Apply Long aReset
-		rst_tb <= '1';
-		wait for 334 ns;
-		
-		-- Release Reset
-		rst_tb <= '0';
-		wait for 1 us;
-		
-		wait until rising_edge(clk_tb);
+	 end process;
 
-		report "Simulation Complete" severity note;
-		wait;
-	end process;
-	
+    stimulus_process: process
+    begin
+        -- rst
+        rst <= '1';
+        wait for 100 ns;
+        rst <= '0';
+        wait for 100 ns;
+
+        -- Send first byte
+        data_in <= "01010001";
+        data_ready <= '1';
+        wait for CLK_PERIOD;
+        data_ready <= '0';
+
+        -- Wait for transmission to complete
+        wait until tx_ready = '1';
+        wait for 200 ns;
+
+        -- Send second byte
+        data_in <= "01011010";
+        data_ready <= '1';
+        wait for CLK_PERIOD;
+        data_ready <= '0';
+
+        -- Wait for transmission to complete
+        wait until tx_ready = '1';
+        wait for 200 ns;
+
+        -- End simulation
+        report "Simulation Complete" severity note;
+        wait;
+    end process;
+
 end tb;

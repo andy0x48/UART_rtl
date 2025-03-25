@@ -15,15 +15,15 @@ end baud_generator;
 	
 architecture rtl of baud_generator is
 
-	signal cnt_out : std_logic_vector(3 downto 0);
+	signal cnt_out : std_logic_vector(9 downto 0);
 	signal tick 	: std_logic;
 
 begin
 
 	counter_c : LPM_COUNTER
 		generic map (
-			LPM_WIDTH => 4,
-			LPM_MODULUS => 4
+			LPM_WIDTH => 10,
+			LPM_MODULUS => 325
 			)
 		port map (
 			clock => clk,
@@ -37,7 +37,7 @@ begin
 			if rst = '1' then
 				tick <= '0'; 
 			else 
-				if cnt_out = "0011" then
+				if cnt_out = 324 then
 					tick <= '1';
 				else
 					tick <= '0';
