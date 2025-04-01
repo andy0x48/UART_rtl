@@ -31,7 +31,7 @@ architecture tb of uart_tx_tb is
 		);
 	 end component;
 
-    signal clk          : std_logic := '0';
+	 signal clk          : std_logic := '0';
     signal rst        	: std_logic := '1';
     signal data_ready	: std_logic := '0';
     signal baud_tick    : std_logic := '0';
