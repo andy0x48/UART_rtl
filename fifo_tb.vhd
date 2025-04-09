@@ -43,12 +43,12 @@ begin
 		);
 
    clk_process: process
-		begin
-			clk <= '0';
-			wait for CLK_PERIOD / 2;
-			clk <= '1';
-			wait for CLK_PERIOD / 2;
-		end process;
+	begin
+		clk <= '0';
+		wait for CLK_PERIOD / 2;
+		clk <= '1';
+		wait for CLK_PERIOD / 2;
+	end process;
 
    -- Stimulus process
    stimulus_process: process
